@@ -1,3 +1,3 @@
-My name is Sarvesh Dighe
+Project envolves the concepts of Compiler and effectively Parser
 
 
