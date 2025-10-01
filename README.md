@@ -1,3 +1,3 @@
-Project envolves the concepts of Compiler and effectively Parser
-and it build for a language which compitable of assembly of ARM architecture
+Project envolves the concepts of Compiler and effectively Parser 
+and it build for a language which compitable of assembly of ARM architecture(envolves lot of thinking)
 
