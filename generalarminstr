@@ -1,0 +1,499 @@
+
+ Instructions : Meaning and Encoding
+
+
+ +-----------------------------------------------------------------------+
+ |   General Guidelines                                                  |
+ |                                                                       |
+ |   31 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 0    |
+ |          1 0 0 x   -> Arithmetic, logic etc - Immediate               |
+ |          1 0 1 x   -> Branches                                        |
+ |          x 1 0 1   -> Arithmetic, logic etc - Register                |
+ |          x 1 x 0   -> Loads and stores                                |
+ |                                                                       |
+ +-----------------------------------------------------------------------+
+
+ Given below is detailed description and encoding scheme for instructions.
+ Try encoding different instructions and match with your 
+ friends to see if you have understood the concept.
+
+________________________________________________________________________________
+
+     
+ (01)
+
+      B
+      Branch causes an unconditional branch to a label at a PC-relative offset,
+      with a hint that this is not a subroutine call or return.
+
+          B <label>
+
+          0 0 0 1 0 1 . . . . . . . . . . . . . . . . . . . . . . . . . .
+                      [----------------------imm26----------------------]
+
+
+                    It is the program label to be unconditionally branched to
+         <label>    Its offset from the address of this instruction,
+                    in the range +/-128MB, is encoded as "imm26" times 4.
+
+
+________________________________________________________________________________
+
+ (02)
+
+      B.cond
+      Branch conditionally to a label at a PC-relative offset,
+      with a hint that this is not a subroutine call or return.
+
+      B.<cond>  <label>
+
+          0 1 0 1 0 1 0 0 . . . . . . . . . . . . . . . . . . . 0 . . . .
+                          [----------------imm19--------------]   [ cond]
+
+
+         <cond> - It is one of the standard conditions, encoded in the standard
+                  way, and encoded in "cond":
+                   0000  - EQ  [True if Z flag is 1]
+                   0001  - NE                          [True if Z flag is 0]
+                   0010  - CS (carry set)              [True if C is 1]
+                   0011  - CC (carry clear)            [True if C is 0]
+                   0100  - MI (minus)                  [True if N is 1]
+                   0101  - PL (plus)                   [True if N is 0]
+                   0110  - VS (Signed overflow)        [True if V==1]
+                   0111  - VC (No signed overflow)     [True if V==0]
+                   1000  - HI (Unsigned higher)        [True if C==1 and Z==0]
+                   1001  - LS (Unsigned lower or same) [True if C==0 || Z==1]
+                   1010  - GE (signed GT or equal)     [True if N==V]
+                   1011  - LT (signed less than)       [True if N!=V]
+                   1100  - GT (signed greater than)    [True if (Z==0 and N==V)]
+                   1101  - LE (signed less than or eq) [True if (Z==1 or N!=V)]
+                   1110  - AL (Always executed)
+
+        <label> - Its the program label to be conditionally branched to.
+                  Its offset from the address of this instruction,
+                  in the range +/-1MB, is encoded as "imm19" times 4.
+________________________________________________________________________________
+
+(03)
+       BR
+       Branch to Register branches unconditionally to an address in a register,
+       with a hint that this is not a subroutine return.
+
+       BR <Xn>
+
+          1 1 0 1 0 1 1 0 0 0 0 1 1 1 1 1 0 0 0 0 0 0 . . . . . 0 0 0 0 0
+                                                      [---R---]
+
+          <Xn>  - Its the 64-bit name of the general-purpose register holding
+                  the address to be branched to, encoded in the "R" field.
+
+________________________________________________________________________________
+       
+
+(04)
+      BL
+      This instruction branches to a PC-relative offset, 
+      setting register LR(X30) to PC+4. 
+      It provides a hint that this is a subroutine call.
+
+      BL <label>
+
+          1 0 0 1 0 1 . . . . . . . . . . . . . . . . . . . . . . . . . .
+                      [----------------------imm26----------------------]
+
+                This is the program label to be unconditionally branched to. 
+       <label>  Its offset from the address of this instruction, 
+                in the range +/-128MB, is encoded as "imm26" times 4.
+
+________________________________________________________________________________
+
+(05)
+
+     BLR
+     Branch with link to register. This instruction calls a subroutine 
+     at an address in a register, setting register LR(X30) to PC+4.
+
+     BLR <Xn>
+
+          1 1 0 1 0 1 1 0 0 0 1 1 1 1 1 1 0 0 0 0 0 0 . . . . . 0 0 0 0 0
+                                                      [--Xn---]
+
+     <Xn>  - This Is the 64-bit name of the general-purpose register 
+             holding the address to be branched to, encoded in the "Rn" field.
+
+________________________________________________________________________________
+
+
+(06)
+       CMP - Registers
+       Compare, subtracts a register value from another register value. It updates 
+       the condition flags based on the result, and discards the result
+
+
+          . 1 1 0 1 0 1 1 0 0 0 . . . . . 0 0 0 0 0 0 . . . . . 1 1 1 1 1
+          x                     [---m---]             [---n---]
+
+       if x is 0 then 32-bit 
+                CMP <Wn>, <Wm>
+                In this case m field is for Wn and n is for Wm
+
+       if x is 1 then 64-bit
+                CMP <Xn>, <Xm>
+                In this case m field is for Xn and n is for Xm
+
+________________________________________________________________________________
+
+ (07)
+       CMP - Immediate
+       Compare (immediate) subtracts an immediate value from a register value. 
+       It updates the condition flags based on the result, and discards the result.
+
+
+          . 1 1 1 0 0 0 1 0 0 . . . . . . . . . . . . . . . . . 1 1 1 1 1
+          x                   [---------imm12-------] [---n---]
+
+       if x is 0 then 32-bit 
+                CMP <Wn>, #<imm>
+                In this case n field is for Wn and imm12 is for <imm>
+
+       if x is 1 then 64-bit
+                CMP <Xn>, #<imm>
+                In this case n field is for Xn and imm12 is for <imm>
+________________________________________________________________________________
+
+
+ (08)
+     ADD / SUBTRACT  - Immediate
+     This section describes the encoding of the Add/subtract (immediate) instruction class.
+
+     Instructions(see decode fields below) are of following format:
+     
+           <instruction>  <Rd>, <Rm>, #immm12
+          
+     R will be replaced by W or X. and m and d are register number 0 - 30.
+ 
+
+          . . . 1 0 0 0 1 0 0 . . . . . . . . . . . . . . . . . . . . . .
+          x p s               [-------immm12--------] [---m---] [---d---]         
+
+
+           imm12 is unsigned immediate, in the range 0 to 4095.
+
+          Decode fields 
+          x    p    s   Instruction
+          --------------------------
+          0    0    0   ADD  - 32bit
+          0    0    1   ADDS - 32bit
+          0    1    0   SUB  - 32bit
+          0    1    1   SUBS - 32bit
+          1    0    0   ADD  - 64bit
+          1    0    1   ADDS - 64bit
+          1    1    0   SUB  - 64bit
+          1    1    1   SUBS - 64 bit
+
+________________________________________________________________________________
+
+  (09)
+     ADD / SUBTRACT - Registers
+     This section describes the encoding of the Add/subtract instruction class, where
+     all operands are registers.
+
+         
+       Instructions(see decode fields below) are of following format:
+     
+           <instruction>  <Rd>, <Rn>, <Rm>
+          
+       R will be replaced by W or X. and m,n and d are register number 0 - 30.
+
+
+
+          . . . 0 1 0 1 1 0 0 0 . . . . . 0 0 0 0 0 0 . . . . . . . . . .
+          x p s                 [---m----]            [---n---] [---d---]         
+
+
+          Decode fields 
+          x    p    s   Instruction
+          --------------------------
+          0    0    0   ADD  - 32bit
+          0    0    1   ADDS - 32bit
+          0    1    0   SUB  - 32bit
+          0    1    1   SUBS - 32bit
+          1    0    0   ADD  - 64bit
+          1    0    1   ADDS - 64bit
+          1    1    0   SUB  - 64bit
+          1    1    1   SUBS - 64 bit
+
+________________________________________________________________________________
+
+   (10)
+
+     ADD / SUBTRACT - with carry
+     Encoding for ADD / SUB with carry, involving all registers.
+     Instructions are exactly of same format similar to previous sections. All oprands are
+     registers
+
+
+           <instruction>  <Rd>, <Rn>, <Rm>
+
+          . . . 1 1 0 1 0 0 0 0 . . . . . 0 0 0 0 0 0 . . . . . . . . . .
+          x p s                 [---m----]            [---n---] [---d---]         
+
+
+          Decode fields 
+          x    p    s   Instruction
+          --------------------------
+          0    0    0   ADC  - 32bit
+          0    0    1   ADCS - 32bit
+          0    1    0   SBC  - 32bit
+          0    1    1   SBCS - 32bit
+          1    0    0   ADC  - 64bit
+          1    0    1   ADCS - 64bit
+          1    1    0   SBC  - 64bit
+          1    1    1   SBCS - 64 bit
+
+________________________________________________________________________________
+
+  (11).a
+
+    MUL - Registers
+
+    Rd = Rn*Rm   ==>    MUL <Rd>, <Rn>, <Rm>
+    
+    
+          . 0 0 1 1 0 1 1 0 0 0 . . . . . 0 1 1 1 1 1 . . . . . . . . . .
+          x                     [---m---]             [---n---] [---d---]
+
+    32bit if x is 0 then MUL <Wd>, <Wn>, <Wm>
+    64bit if x is 1 then MUL <Xd>, <Xn>, <Xm>
+
+
+________________________________________________________________________________
+
+  (11).b
+
+   MADD - Multiply and Add
+   This instruction multiplies two register values, adds a third register value, 
+   and writes the result to the destination register.
+
+   MADD <rd>, <rn>, <rm>, <ra>
+   
+   rd = ra + (rm*rn)
+
+          . 0 0 1 1 0 1 1 0 0 0 . . . . . 0 . . . . . . . . . . . . . . .
+          x                     [---m---]   [---a---] [---n---] [---d---]
+
+    <rd>  Is the 32 or 64 bit name of the general-purpose 
+          destination register, encoded in the "d" field.
+
+    <rn>  Is the 32 or 64 bit name of the first general-purpose 
+          source register holding the multiplicand, encoded in the "n" field.
+
+    <rm>  Is the 32 or 64 bit name of the second general-purpose source register 
+          holding the multiplier, encoded in the "m" field.
+
+    <ra>  Is the 32 or 64 bit name of the third general-purpose source register 
+          holding the addend, encoded in the "a" field.
+________________________________________________________________________________
+
+  (12)
+
+    UDIV
+    Unsigned Divide divides an unsigned integer register value by another 
+    unsigned integer register value, and writes the result to the destination register. 
+    The condition flags are not affected.
+
+
+          . 0 0 1 1 0 1 0 1 1 0 . . . . . 0 0 0 0 1 0 . . . . . . . . . .
+          x                     [---m---]             [---n---] [---d---]
+
+    32bit if x is 0 then UDIV <Wd>, <Wn>, <Wm>
+    64bit if x is 1 then UDIV <Xd>, <Xn>, <Xm>
+
+________________________________________________________________________________
+
+
+  (13)
+
+    SDIV
+    Signed Divide divides a signed integer register value by another signed integer 
+    register value, and writes the result to the destination register. 
+    The condition flags are not affected.
+ 
+
+          . 0 0 1 1 0 1 0 1 1 0 . . . . . 0 0 0 0 1 1 . . . . . . . . . .
+          x                     [---m---]             [---n---] [---d---]
+
+    32bit if x is 0 then SDIV <Wd>, <Wn>, <Wm>
+    64bit if x is 1 then SDIV <Xd>, <Xn>, <Xm>
+
+________________________________________________________________________________
+
+  (14).a
+
+    LOGICAL operations - Registers
+    Instructions are form : <instrunction> <Rd>,<Rn>,<Rm>
+
+
+          . . . 0 1 0 1 0 0 0 . . . . . . 0 0 0 0 0 0 . . . . . . . . . .
+          x [p]               q [---m---]             [---n---] [---d---]
+
+
+          When x is 0 it means instructions involve 32 bit registers and
+          When x is 1 it means instructions involve 64 bit registers.
+          Desccription of other fields given below.
+
+              Decode fields          
+            p     q     Instruction
+         -----------------------------
+           00     0     AND (logical bitwise AND)
+           11     0     ANDS(logical bitwise AND and set flags)
+           01     0     ORR (logical bitwise OR)
+           01     1     ORN (Rd = Rn | ~Rm)
+           10     0     EOR (logical bitwise EX-OR)
+           10     1     EON (Rd = Rn exor ~Rm)
+
+
+  (14).b
+
+     LSL 
+     This instruction shifts a register value left by specified value of bits, 
+     (either immidiate or value given in register)
+     shifting in zeros, and writes the result to the destination register.
+
+     LSL <Rd>, <Rn>, #<shift>  ;shift between 0-31 for 32 bits or 0-63 for 64 bits
+
+     LSL <Rd>, <Rn>, <Rm>
+
+
+  (14).c
+
+     LSR
+     This instruction shifts a register value right by an immediate number or value 
+     given in Register of bits, shifting in zeros, 
+     and writes the result to the destination register.
+
+     LSR <Rd>, <Rn>, #<shift>
+
+     LSR <Rd>, <Rn>, <Rm>
+________________________________________________________________________________
+
+
+ (15)
+
+     LDR
+     Load Register (immediate) loads a word or doubleword from memory and writes 
+     it to a register. The address that is used for the load is calculated from 
+     a base register and an immediate offset.
+
+          1 . 1 1 1 0 0 1 0 1 . . . . . . . . . . . . . . . . . . . . . .
+            x                 [---------imm12-------] [---n---] [---d---]
+
+         When x is 0 then load 32bits LDR Wd,[Xn,#<pimm>]
+         When x is 1 then load 64bits LDR Xd,[Xn,#<pimm>]
+
+
+         <pimm>  - For the 32-bit variant: 
+                      Its the optional positive immediate byte offset, 
+                      a multiple of 4 in the range 0 to 16380, 
+                      defaulting to 0 and encoded in the "imm12" field as <pimm>/4.
+                   For the 64-bit variant: 
+                      Its the optional positive immediate byte offset, 
+                      a multiple of 8 in the range 0 to 32760, 
+                      defaulting to 0 and encoded in the "imm12" field as <pimm>/8.
+
+________________________________________________________________________________
+
+
+  (16)
+
+       STR - Register + immediate 
+       Store Register (immediate) stores a word or a doubleword from 
+       a register to memory. The address that is used for the store is calculated 
+       from a base register and an immediate offset.
+
+
+          1 . 1 1 1 0 0 1 0 0 . . . . . . . . . . . . . . . . . . . . . .
+            x                 [---------imm12-------] [---n---] [---t---]
+
+         When x is 0 then load 32bits STR Wt,[Xn,#<pimm>]
+         When x is 1 then load 64bits STR Xt,[Xn,#<pimm>]
+
+         <pimm>  - For the 32-bit variant: 
+                      Its the optional positive immediate byte offset, 
+                      a multiple of 4 in the range 0 to 16380, 
+                      defaulting to 0 and encoded in the "imm12" field as <pimm>/4.
+                   For the 64-bit variant: 
+                      Its the optional positive immediate byte offset, 
+                      a multiple of 8 in the range 0 to 32760, 
+                      defaulting to 0 and encoded in the "imm12" field as <pimm>/8.
+
+________________________________________________________________________________
+
+
+  (17)
+
+      STRB - Register + immediate
+      Store Register Byte, stores the least significant byte of a 32-bit 
+      register to memory. The address that is used for the store is 
+      calculated from a base register and an immediate offset.
+
+          0 0 1 1 1 0 0 1 0 0 . . . . . . . . . . . . . . . . . . . . . .
+                              [---------imm12-------] [---n---] [---t---]
+
+
+          STRB Wt, [Xn,#<pimm>]
+
+         <pimm>  - Itss the optional positive immediate byte offset, 
+                   in the range 0 to 4095, 
+                   defaulting to 0 and encoded in the "imm12" field.
+
+________________________________________________________________________________
+
+
+  (18)
+
+      STRH 
+      Store Register Halfword (immediate) stores the least significant 
+      halfword of a 32-bit register to memory. 
+      The address that is used for the store is calculated from 
+      a base register and an immediate offset
+
+
+          0 1 1 1 1 0 0 1 0 0 . . . . . . . . . . . . . . . . . . . . . .
+                              [---------imm12-------] [---n---] [---t---]
+
+          STRB Wt, [Xn,#<pimm>]
+
+          <pimm> - Its the optional positive immediate byte offset, 
+                   a multiple of 2 in the range 0 to 8190, 
+                   defaulting to 0 and encoded in the "imm12" field as <pimm>/2.
+
+________________________________________________________________________________
+
+
+  (19)
+
+      MOV - Register
+      Move (register) copies the value in a source register to the destination register.
+      
+       
+          . 0 1 0 1 0 1 0 0 0 0 . . . . . 0 0 0 0 0 0 1 1 1 1 1 . . . . . 
+          x                     [---m---]                       [---d---]
+
+    if x is 0 then 32bit variant ==> MOV Wd, Wm
+    if x is 1 then 64bit variant ==> MOV Xd, Xm
+
+________________________________________________________________________________
+
+  (20) 
+      MOV - Immediate
+      Move (immediate) moves a 16-bit immediate value to a register.
+
+          0 1 0 1 0 0 1 0 1 0 0 . . . . . . . . . . . . . . . . . . . . . . 
+                                [-------------imm16-------------] [---d---]
+
+      MOV Wd, #<imm>
+
+________________________________________________________________________________
+
+

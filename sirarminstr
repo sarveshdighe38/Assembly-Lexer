@@ -1,0 +1,372 @@
+
+
+(1) General Purpose Registers
+
+There are 31 general purpose registers. Each register 
+can be used as a 64-bit X register (X0..X30), or as 
+a 32-bit W register (W0..W30). These are two separate 
+ways of looking at the same register. 
+
+For example, this register diagram shows that 
+W0 is the bottom 32 bits of X0, 
+and W1 is the bottom 32 bits of X1:
+
+         |--------|W0                |--------|W1
+|--------|--------|X0       |--------|--------|X1
+63     32 31     0          63     32 31     0
+
+For data processing instructions, the choice of 
+X or W determines the size of the operation. 
+Using X registers will result in 64-bit calculations,
+and using W registers will result in 32-bit calculations.
+
+This example performs a 32-bit integer addition:
+ADD W0, W1, W2
+
+This example performs a 64-bit integer addition:
+ADD X0, X1, X2
+
+When a W register is written, as seen in the example above,
+the top 32 bits of the 64-bit register are zeroed.
+
+[Few more general purpose and other registers coming up soon]
+
+----------------------------------------------------------------
+
+
+(2) Data processing - Arithmetic and Logic operations
+
+
+These instructions are mostly of following format.
+<op>  <dest>, <input 1>, <input 2>
+
+* <op> defines what the instruction does. For example, 
+  ADD does addition and AND performs a logical AND. 
+
+* <dest> is the destination of the instruction is 
+  always a register, and specifies where the result 
+  of the operation is placed. Most instructions have 
+  a single destination register. 
+  A few instructions have two destination registers. 
+  When the destination is a W register, the top 
+  32 bits of the corresponding X register are set to 0.
+
+* <register 1> will always be a register.
+
+* <input 2> can be a register or a constant. 
+  When <input 2> is a constant, it is encoded within 
+  the instruction itself. This means that the range of 
+  constants available is limited.
+
+There are a couple of special cases, such as the MOV 
+and MVN instructions. MOV moves a constant, or the contents
+ of another register, into the register specified 
+as the destination. MOV and MVN only require a single 
+input operand, which can be either a register or a constant.
+
+MOV X0, #1
+sets X0 = 1
+
+MVN W0, W1
+sets W0 = ~W1
+
+----------------------------------------------------------------
+
+(3) Loads and stores
+
+The basic load and store operations are: LDR(load) and STR(store).
+
+These operations transfer a single value between memory and 
+the general-purpose registers. 
+
+The syntax for these instructions is:
+
+LDR <dest>, [<address>]
+STR<size> <src>, [<address>]
+
+The size of the load or store is determined by the register 
+type X or W and the Size field. 
+X is used for 64 bits and W is used for 32 bits.
+
+For example, 
+this instruction loads 32 bits from <address> into W0
+     LDR W0, [<address>]
+
+This instruction loads 64 bits from address into X0:
+     LDR X0, [<address>]
+
+
+
+The <size> field allows you to load a sub-register 
+sized quantity of data.
+
+For example, 
+this instruction stores the bottom byte (B) of W0 to address:
+     STRB W0, [<addr>]
+
+
+This instruction stores the bottom 16 bits (halfword) of W0 to <addr>:
+     STRH W0, [<addr>]
+
+
+And, this instruction stores the bottom 32 bits(word) of X0 to <addr>:
+     STRW X0, [<addr>]
+
+
+By default, when a sub-register-sized quantity of data is loaded, 
+the rest of the register is zeroed.
+
+--------------------------------------------------------------------------
+
+(4) Loads and Stores - Addressing modes
+
+
+There are several addressing modes that define how the address is formed.
+
+** Base register: 
+   The simplest form of addressing is a single register. Base register is
+   an X register that contains the full, or absolute, virtual address 
+   of the data being accessed, as you can see in figure:
+
+       LDR W0, [X1] 
+
+                    |:|
+                    |:|
+     X1 has    ---> |v| --->   W0 will have
+     this addr      |:|        value "v"
+                    |:|
+                  Memory
+
+
+** Offset addressing modes :
+   An offset can be applied optionally to the base address, as you can
+   see in figure.
+
+      LDR W0, [X1, #12]
+
+                    |:|
+     This addr is   |:|
+     X1+12     ---> |t| --->   W0 will have
+                    |:|        value "t"
+                    |:|
+                  Memory
+
+
+   In the preceding figure, X1 contains the base address and #12 is 
+   a byte offset from that address.
+   This means that the accessed address is X1+12.
+
+** Pre-index addressing modes - 
+   In the instruction syntax, pre-indexing is shown by adding 
+   an exclamation mark ! after the square brackets, as this figure shows:
+
+      LDR W0, [X1, #12]!
+  
+   X1 becomes X1+12 then this new address is used.
+                      |:|
+   This addr is       |:|
+   X1(oldX1+12)  ---> |t| --->   W0 will have
+                      |:|        value "t"
+                      |:|
+                     Memory
+
+   Pre-indexed addressing is like offset addressing, 
+   except that the base pointer is updated as a result 
+   of the instruction. In the preceding figure, 
+   X1 would have the value X1+12 after the instruction has completed.
+
+** Post-index addressing modes 
+   With post-index addressing, the value is loaded from 
+   the address in the base pointer, and then 
+   the pointer is updated, as this figure shows:
+
+      LDR W0, [X1], #12
+
+   X1 is used first and X1 becomes X1+12
+                      |:|
+   This addr is       |:|
+   X1            ---> |t| --->   W0 will have
+                      |:|        value "t" and X1 becomes X1+12
+                      |:|
+                     Memory
+
+---------------------------------------------------------------------
+
+(5) Branch 
+
+Ordinarily, a processor executes instructions in program order. 
+This means that a processor executes instructions in the same order 
+that they are set in memory. One way to change this order is to 
+use branch instructions. Branch instructions change the program 
+flow and are used for loops, decisions etc.
+
+
+** Unconditional branch instructions
+   There are two types of unconditional branch instructions; 
+   B which means Branch and BR which means Branch with Register.
+
+   B <label>
+   This instruction performs a direct branch to <label>. 
+
+   BR <Xn>
+   BR performs an indirect, or absolute, branch to the address 
+   specified in Xn.
+
+
+** Conditional branch instructions
+   The conditional branch instruction is the conditional version of 
+   the B instruction. 
+   The branch is only taken if the condition <cond> is true. 
+   The condition is tested against the ALU flags stored in PSTATE and 
+   needs to be generated by a previous instruction 
+   such as a compare (CMP).
+
+   B.<cond> <label>
+
+
+----------------------------------------------------------------------
+
+(6) Generating Condition Code
+
+In conditional branches <cond> is tested against the ALU flags stored 
+in PSTATE. 
+
+The ALU flags are set as a side effect of data-processing instructions.
+An 'S' at the end of operation causes the ALU flags to be updated. 
+
+Example of an instruction in which the ALU flags are not updated:
+     ADD X0, X1, X2
+
+
+Example of an instruction in which the ALU flags are updated 
+with the use of S:
+     ADDS X0, X1, X2
+
+
+This method allows us to control when the flags are updated 
+or not updated. The flags can be used by subsequent condition 
+instructions. Let’s take the following code as an example:
+    SUBS X0, X5, #12
+    AND  X1, X7, X9
+    B.EQ label
+
+The SUBS instruction performs a subtract and updates the ALU flags. 
+Then the AND instruction performs an and operation, 
+and does not update the ALU flags. Finally, the B.EQ instruction 
+performs a conditional branch, using flags set as result of the subtract.
+
+The flags are 
+   N - negative
+   C - carry
+   V - overflow
+   Z - zero
+
+Let’s take the Z flag as an example. If the result of the operation
+ was zero, then the Z flag is set to 1.
+For example, here the Z flag will be set(1) if X5 is 12, 
+otherwise it will be cleared(0):
+    SUBS X0, X5, #12
+
+
+The condition codes map on to these flags and come in pairs. 
+Let’s take EQ(equal) and NE(not equal) as an example and see how
+they map to the Z flag:
+   The EQ code checks for Z equals to 1. 
+   The NE code checks for Z equals to 0.
+
+So for following example:
+
+                 SUBS  W0, W7, W9
+                 B.EQ  label
+
+       In the first line, we have a subtract operation. 
+       Because we used the S suffix, this subtract operation 
+       sets the Z flag if the result is zero. 
+       In the final line, there is a branch to label if Z is 1.
+       If W7 equal to W9, the result of the subtraction will be 
+       zero, and the Z flag would have been set(1). 
+       Therefore, the branch to label will be taken 
+       if W7 and W9 are equal.
+
+
+In addition to the regular data-processing instructions, other 
+instructions are available that only update the ALU flags:
+    CMP - compare
+    TST - test
+
+
+
+*** Conditional Select instructions
+
+    So far, we have seen examples that use branches to handle decision
+    We also have conditional select instructions. In many cases, 
+    these instructions can be used as an alternative to branches.
+
+    There are many variants, but the basic form is:
+       CSEL Xd, Xn, Xm, cond
+
+    if cond is set then Xd will have Xn otherwise Xd will have Xm
+
+    Such instructions remove the need to branch.
+
+----------------------------------------------------------------------
+
+(7) Flags
+
+    C 
+    carry flag -> 
+    For an addition operation, C is set to 1 if the addition 
+    produced a carry (that is, an unsigned overflow), 
+    and to 0 otherwise.
+    Which means while adding following 2 cases the carry flag will be set 1 
+      (a) If using 32 bits registers result is greater than 32 bits
+      (b) If using 64 bits registers result is greater than 64 bits
+
+    For a subtraction, C is set to 0 if the subtraction produced 
+    a borrow (that is, an unsigned underflow), and to 1 otherwise.
+
+
+    exercises
+    Write down for each instruction given below what will be value of the carry flag
+    (1) SUBS  W2, W0, W1   ; W0 =  0x8017, W1 = 0XF12
+    (2) SUBS  W2, W3, W4   ; W3 =  0x2, W4 = 0x3
+    (3) ADDS  WZR, W5, W6  ; W5 =  0xFFFFFFFF W6 = 0x41
+    (4) ADDS  WZR, W5, W6  ; W5 =  0x7FFFFFFF W6 = 0x24
+
+
+    V
+    Overflow flag ->
+    In case of addition V is set to 1 in following cases
+      (a) Adding 2 positive integers yields negative result.
+      (b) Adding 2 negative integers yields positive result.
+
+    In case of subtraction V is set to 1 in following cases
+       (a) Positive - Negative = Negative
+       (b) Negative - Positive = Positive
+
+
+    N
+    Negative flag -> 
+    If result of insturction is negative, then N is set to 1 otherwise 0.
+
+
+    Z
+    Zero flag ->
+    When all bits of result are 0 then Z is set to 1 otherwise Z is 0.
+
+
+       [Remember ADD,AND,SUB etc will not update flags 
+        but ADDS,ANDS,SUBS etc will update.  For more info refer 
+        to instructions document.]
+
+          NOTE :
+
+          Depending on whether you are working on unsigned integer 
+          or signed integer, you may interpret flags differently. 
+          Also it depends what insturctions you are using. 
+
+-----------------------------------------------------------------------
+
+
+
+

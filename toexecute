@@ -1,0 +1,50 @@
+
+Install following using apt install commands
+    aarch64-linux-gnu-as
+    aarch64-linux-gnu-ld
+    qemu-aarch64
+
+Copy following code snippet replacing "FIRST" by your main 
+subroutine name. Save it in "filename.s". Also copy your translated
+code in this.
+
+.section .text
+.global _start
+
+_start:
+    mov X0, #1
+    BL FIRST
+    mov w8, #93 
+    svc #0
+    ret
+
+
+Run following commands
+See as and ld commands are run wihtout failures.
+If there are any errors there might be issues in your translation code.
+
+   aarch64-linux-gnu-as -mcpu=cortex-a57 filename.s -o filename.o
+   aarch64-linux-gnu-ld filename.o -o filename
+
+
+So we now have an executable file. We can launch it with QEMU...
+   qemu-aarch64 -g 1234 ./filename
+
+You will see that nothing happens when you enter in this command. 
+It will stall. QEMU is waiting on the GNU Debugger (GDB) 
+to be launched. In a second terminal (while keeping the QEMU 
+terminal running), run this command...
+
+gdb-multiarch -q --nh \
+  -ex 'set architecture aarch64' \
+  -ex 'file filename' \
+  -ex 'target remote localhost:1234' \
+  -ex 'layout split' \
+  -ex 'layout regs'
+
+  
+Once, you've entered the above terminal command, you will be at 
+the first instruction of the Source File
+You can use basic gdb commands to navigate through execution and observe
+register contents.
+
